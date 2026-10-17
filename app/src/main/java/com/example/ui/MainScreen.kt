@@ -89,6 +89,7 @@ fun MainScreen(
 
     val activeTab by viewModel.activeTab.collectAsStateWithLifecycle()
     val hasPermission by viewModel.hasPermission.collectAsStateWithLifecycle()
+    val isServiceConnected by viewModel.isServiceConnected.collectAsStateWithLifecycle()
     val filteredNotifications by viewModel.filteredNotifications.collectAsStateWithLifecycle()
     val appCounts by viewModel.appCounts.collectAsStateWithLifecycle()
     val analyticsState by viewModel.analyticsState.collectAsStateWithLifecycle()
@@ -97,6 +98,7 @@ fun MainScreen(
     val selectedPackage by viewModel.selectedPackage.collectAsStateWithLifecycle()
     val onlyStarred by viewModel.onlyStarred.collectAsStateWithLifecycle()
     val unreadOnly by viewModel.unreadOnly.collectAsStateWithLifecycle()
+    val groupByMode by viewModel.groupByMode.collectAsStateWithLifecycle()
 
     var showTestAlertModal by remember { mutableStateOf(false) }
 
@@ -279,6 +281,8 @@ fun MainScreen(
                     onToggleOnlyStarred = { viewModel.toggleOnlyStarred() },
                     unreadOnly = unreadOnly,
                     onToggleUnreadOnly = { viewModel.toggleUnreadOnly() },
+                    groupByMode = groupByMode,
+                    onGroupByModeChange = { viewModel.setGroupByMode(it) },
                     modifier = Modifier.padding(bottom = 6.dp)
                 )
             }
@@ -293,7 +297,11 @@ fun MainScreen(
                     HubTab.TIMELINE -> {
                         TimelineScreen(
                             notifications = filteredNotifications,
+                            searchQuery = searchQuery,
+                            groupByMode = groupByMode,
+                            onClearSearch = { viewModel.updateSearchQuery("") },
                             onToggleStar = { viewModel.toggleStar(it) },
+                            onToggleRead = { viewModel.toggleReadStatus(it) },
                             onDeleteNotification = { viewModel.deleteNotification(it) },
                             onMarkAllRead = { viewModel.markAllAsRead() },
                             onRequestSimulateAlert = { showTestAlertModal = true }
@@ -317,12 +325,16 @@ fun MainScreen(
                     HubTab.SETTINGS -> {
                         SettingsScreen(
                             hasPermission = hasPermission,
+                            isServiceConnected = isServiceConnected,
                             onOpenPermissionSettings = {
                                 try {
                                     context.startActivity(NotificationTrackerService.getSettingsIntent())
                                 } catch (e: Exception) {
                                     e.printStackTrace()
                                 }
+                            },
+                            onRebindService = {
+                                viewModel.rebindService(context)
                             },
                             onRequestSimulateAlert = { showTestAlertModal = true },
                             onExportLogs = {

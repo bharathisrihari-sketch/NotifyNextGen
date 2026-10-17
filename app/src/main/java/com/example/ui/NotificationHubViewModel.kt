@@ -35,6 +35,11 @@ enum class HubTab(val label: String) {
     SETTINGS("Tools")
 }
 
+enum class GroupByMode {
+    DATE,
+    APP
+}
+
 data class FilterCriteria(
     val query: String = "",
     val category: NotificationCategory? = null,
@@ -72,11 +77,16 @@ class NotificationHubViewModel(
     private val _unreadOnly = MutableStateFlow(false)
     val unreadOnly: StateFlow<Boolean> = _unreadOnly.asStateFlow()
 
+    private val _groupByMode = MutableStateFlow(GroupByMode.DATE)
+    val groupByMode: StateFlow<GroupByMode> = _groupByMode.asStateFlow()
+
     private val _activeTab = MutableStateFlow(HubTab.TIMELINE)
     val activeTab: StateFlow<HubTab> = _activeTab.asStateFlow()
 
     private val _hasPermission = MutableStateFlow(false)
     val hasPermission: StateFlow<Boolean> = _hasPermission.asStateFlow()
+
+    val isServiceConnected: StateFlow<Boolean> = NotificationTrackerService.isServiceConnected
 
     val appCounts: StateFlow<List<AppNotificationCount>> = repository.appCounts
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -165,6 +175,11 @@ class NotificationHubViewModel(
         _hasPermission.value = NotificationTrackerService.isNotificationAccessGranted(context)
     }
 
+    fun rebindService(context: Context) {
+        NotificationTrackerService.requestServiceRebind(context)
+        refreshPermission(context)
+    }
+
     fun updateSearchQuery(query: String) {
         _searchQuery.value = query
     }
@@ -185,6 +200,10 @@ class NotificationHubViewModel(
         _unreadOnly.value = !_unreadOnly.value
     }
 
+    fun setGroupByMode(mode: GroupByMode) {
+        _groupByMode.value = mode
+    }
+
     fun setActiveTab(tab: HubTab) {
         _activeTab.value = tab
     }
@@ -192,6 +211,12 @@ class NotificationHubViewModel(
     fun toggleStar(record: NotificationRecord) {
         viewModelScope.launch {
             repository.toggleStar(record.id, record.isStarred)
+        }
+    }
+
+    fun toggleReadStatus(record: NotificationRecord) {
+        viewModelScope.launch {
+            repository.setReadStatus(record.id, !record.isRead)
         }
     }
 

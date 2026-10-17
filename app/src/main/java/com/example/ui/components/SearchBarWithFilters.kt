@@ -26,16 +26,22 @@ import androidx.compose.material3.InputChipDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.NotificationCategory
 import com.example.ui.theme.StarGold
+
+import com.example.ui.GroupByMode
 
 @Composable
 fun SearchBarWithFilters(
@@ -49,8 +55,12 @@ fun SearchBarWithFilters(
     onToggleOnlyStarred: () -> Unit,
     unreadOnly: Boolean,
     onToggleUnreadOnly: () -> Unit,
+    groupByMode: GroupByMode = GroupByMode.DATE,
+    onGroupByModeChange: (GroupByMode) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    val focusManager = LocalFocusManager.current
+
     Column(modifier = modifier.fillMaxWidth()) {
         // Search Input
         OutlinedTextField(
@@ -62,7 +72,7 @@ fun SearchBarWithFilters(
                 .testTag("notification_search_input"),
             placeholder = {
                 Text(
-                    "Search notifications, apps, or message text...",
+                    "Search notifications by app name, title, or message...",
                     style = MaterialTheme.typography.bodyMedium
                 )
             },
@@ -88,6 +98,8 @@ fun SearchBarWithFilters(
                 }
             },
             singleLine = true,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+            keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
             shape = RoundedCornerShape(16.dp),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
@@ -142,6 +154,18 @@ fun SearchBarWithFilters(
                     if (unreadOnly) onToggleUnreadOnly()
                 },
                 label = { Text("All", style = MaterialTheme.typography.labelMedium) },
+                shape = RoundedCornerShape(10.dp)
+            )
+
+            // "Group by App" Chip
+            FilterChip(
+                selected = groupByMode == GroupByMode.APP,
+                onClick = {
+                    onGroupByModeChange(
+                        if (groupByMode == GroupByMode.APP) GroupByMode.DATE else GroupByMode.APP
+                    )
+                },
+                label = { Text("Group by App", style = MaterialTheme.typography.labelMedium) },
                 shape = RoundedCornerShape(10.dp)
             )
 

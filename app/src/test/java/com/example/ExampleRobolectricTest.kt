@@ -66,4 +66,76 @@ class ExampleRobolectricTest {
         val all = dao.getAllNotifications().first()
         assertTrue(all.any { it.packageName == "com.slack" })
     }
+
+    @Test
+    fun `notification tracker service provides valid settings intent`() {
+        val intent = com.example.service.NotificationTrackerService.getSettingsIntent()
+        assertEquals(android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS, intent.action)
+    }
+
+    @Test
+    fun `notification access check executes safely`() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        // In Robolectric test environment, listener is not enabled by default
+        val isGranted = com.example.service.NotificationTrackerService.isNotificationAccessGranted(context)
+        assertEquals(false, isGranted)
+    }
+
+    @Test
+    fun `search notifications filters by app name and notification content`() = runBlocking {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val db = AppDatabase.getDatabase(context)
+        val dao = db.notificationDao()
+
+        dao.insert(
+            NotificationRecord(
+                packageName = "com.whatsapp",
+                appName = "WhatsApp",
+                title = "Alice",
+                content = "Meeting at 4pm tomorrow",
+                category = NotificationCategory.MESSAGES.name
+            )
+        )
+        dao.insert(
+            NotificationRecord(
+                packageName = "com.spotify",
+                appName = "Spotify",
+                title = "Now Playing",
+                content = "Bohemian Rhapsody",
+                category = NotificationCategory.OTHER.name
+            )
+        )
+
+        // Search by app name
+        val appSearchResults = dao.searchNotifications("WhatsApp").first()
+        assertTrue(appSearchResults.any { it.appName == "WhatsApp" })
+        assertTrue(appSearchResults.none { it.appName == "Spotify" })
+
+        // Search by content keyword
+        val contentSearchResults = dao.searchNotifications("Bohemian").first()
+        assertTrue(contentSearchResults.any { it.content.contains("Bohemian") })
+        assertTrue(contentSearchResults.none { it.appName == "WhatsApp" })
+    }
+
+    @Test
+    fun `toggle read status updates record in database`() = runBlocking {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val db = AppDatabase.getDatabase(context)
+        val dao = db.notificationDao()
+
+        val id = dao.insert(
+            NotificationRecord(
+                packageName = "com.telegram",
+                appName = "Telegram",
+                title = "News Channel",
+                content = "Latest update published",
+                isRead = false
+            )
+        )
+
+        dao.setReadStatus(id, true)
+        val updatedList = dao.getAllNotifications().first()
+        val record = updatedList.find { it.id == id }
+        assertTrue(record != null && record.isRead)
+    }
 }

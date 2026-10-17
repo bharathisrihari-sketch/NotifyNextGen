@@ -26,8 +26,10 @@ import androidx.compose.material.icons.filled.AutoDelete
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.DoneAll
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.OpenInNew
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
@@ -61,7 +63,9 @@ import com.example.ui.theme.Indigo40
 @Composable
 fun SettingsScreen(
     hasPermission: Boolean,
+    isServiceConnected: Boolean,
     onOpenPermissionSettings: () -> Unit,
+    onRebindService: () -> Unit,
     onRequestSimulateAlert: () -> Unit,
     onExportLogs: () -> Unit,
     onMarkAllRead: () -> Unit,
@@ -145,12 +149,17 @@ fun SettingsScreen(
 
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = if (hasPermission) "Notification Access Active" else "Access Permission Required",
+                            text = if (hasPermission) {
+                                if (isServiceConnected) "Notification Listener Active" else "Access Granted (Standby)"
+                            } else "Access Permission Required",
                             style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                             color = if (hasPermission) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onErrorContainer
                         )
                         Text(
-                            text = if (hasPermission) "NotifyVault is actively listening and archiving incoming alerts." else "Android requires explicit permission to intercept notifications.",
+                            text = if (hasPermission) {
+                                if (isServiceConnected) "Service is actively intercepting and archiving all device notifications into Room."
+                                else "Permission is granted. Tap Reconnect if service has not bound yet."
+                            } else "Android requires explicit permission to intercept notifications.",
                             style = MaterialTheme.typography.bodySmall,
                             color = if (hasPermission) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.85f)
                         )
@@ -158,27 +167,39 @@ fun SettingsScreen(
 
                     Spacer(modifier = Modifier.width(8.dp))
 
-                    Button(
-                        onClick = onOpenPermissionSettings,
-                        colors = if (hasPermission) {
-                            ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                        } else {
-                            ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-                        },
-                        shape = RoundedCornerShape(10.dp)
-                    ) {
-                        Text(
-                            text = if (hasPermission) "Settings" else "Enable",
-                            color = if (hasPermission) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onError,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Icon(
-                            imageVector = Icons.Default.OpenInNew,
-                            contentDescription = null,
-                            modifier = Modifier.size(14.dp),
-                            tint = if (hasPermission) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onError
-                        )
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        if (hasPermission && !isServiceConnected) {
+                            OutlinedButton(
+                                onClick = onRebindService,
+                                shape = RoundedCornerShape(10.dp),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Text("Reconnect", fontSize = 11.sp)
+                            }
+                        }
+
+                        Button(
+                            onClick = onOpenPermissionSettings,
+                            colors = if (hasPermission) {
+                                ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                            } else {
+                                ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                            },
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Text(
+                                text = if (hasPermission) "Settings" else "Enable",
+                                color = if (hasPermission) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onError,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Icon(
+                                imageVector = Icons.Default.OpenInNew,
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp),
+                                tint = if (hasPermission) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onError
+                            )
+                        }
                     }
                 }
             }
@@ -316,6 +337,90 @@ fun SettingsScreen(
                             style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp),
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                    }
+                }
+            }
+        }
+
+        // Developer & Contact Info Section
+        item {
+            Text(
+                text = "Developer & Contact Support",
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f)
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                text = "Bharathi Purushothaman",
+                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "Lead Developer & App Creator",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Email,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.secondary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                text = "bharathi.srihari@gmail.com",
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "Support & Feedback Contact",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
             }

@@ -42,6 +42,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -53,10 +55,15 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+import androidx.compose.material.icons.filled.MarkEmailRead
+import androidx.compose.material.icons.outlined.MarkEmailUnread
+
 @Composable
 fun NotificationCard(
     record: NotificationRecord,
+    searchQuery: String = "",
     onToggleStar: () -> Unit,
+    onToggleRead: () -> Unit = {},
     onDelete: () -> Unit,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -68,6 +75,9 @@ fun NotificationCard(
     } catch (e: Exception) {
         NotificationCategory.OTHER
     }
+
+    val highlightColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f)
+    val highlightTextColor = MaterialTheme.colorScheme.onPrimaryContainer
 
     Card(
         modifier = modifier
@@ -113,10 +123,19 @@ fun NotificationCard(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
+                        if (!record.isRead) {
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primary)
+                            )
+                        }
+
                         Text(
-                            text = record.appName,
+                            text = buildHighlightedText(record.appName, searchQuery, highlightColor, highlightTextColor),
                             style = MaterialTheme.typography.labelLarge.copy(
-                                fontWeight = FontWeight.Bold,
+                                fontWeight = if (!record.isRead) FontWeight.ExtraBold else FontWeight.Bold,
                                 fontSize = 14.sp
                             ),
                             color = MaterialTheme.colorScheme.onSurface,
@@ -138,6 +157,20 @@ fun NotificationCard(
                         text = formatTimeAgo(record.timestamp),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                // Read/Unread Toggle Button
+                IconButton(
+                    onClick = onToggleRead,
+                    modifier = Modifier
+                        .size(36.dp)
+                        .testTag("toggle_read_button_${record.id}")
+                ) {
+                    Icon(
+                        imageVector = if (record.isRead) Icons.Default.MarkEmailRead else Icons.Outlined.MarkEmailUnread,
+                        contentDescription = if (record.isRead) "Mark as unread" else "Mark as read",
+                        tint = if (record.isRead) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f) else MaterialTheme.colorScheme.primary
                     )
                 }
 
@@ -175,7 +208,7 @@ fun NotificationCard(
             // Title
             if (record.title.isNotBlank()) {
                 Text(
-                    text = record.title,
+                    text = buildHighlightedText(record.title, searchQuery, highlightColor, highlightTextColor),
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 15.sp
@@ -190,7 +223,7 @@ fun NotificationCard(
             if (record.content.isNotBlank()) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = record.content,
+                    text = buildHighlightedText(record.content, searchQuery, highlightColor, highlightTextColor),
                     style = MaterialTheme.typography.bodyMedium.copy(
                         fontSize = 13.5.sp,
                         lineHeight = 19.sp
@@ -269,6 +302,44 @@ fun NotificationCard(
             }
         }
     }
+}
+
+fun buildHighlightedText(
+    fullText: String,
+    query: String,
+    highlightColor: Color,
+    textColor: Color
+): AnnotatedString {
+    val cleanQuery = query.trim()
+    if (cleanQuery.isBlank() || cleanQuery.length < 2) return AnnotatedString(fullText)
+
+    val builder = AnnotatedString.Builder()
+    val lowerFull = fullText.lowercase()
+    val lowerQuery = cleanQuery.lowercase()
+    var currentIndex = 0
+
+    while (currentIndex < fullText.length) {
+        val matchIndex = lowerFull.indexOf(lowerQuery, currentIndex)
+        if (matchIndex == -1) {
+            builder.append(fullText.substring(currentIndex))
+            break
+        }
+        if (matchIndex > currentIndex) {
+            builder.append(fullText.substring(currentIndex, matchIndex))
+        }
+        val matchEnd = matchIndex + lowerQuery.length
+        builder.pushStyle(
+            SpanStyle(
+                background = highlightColor,
+                fontWeight = FontWeight.ExtraBold,
+                color = textColor
+            )
+        )
+        builder.append(fullText.substring(matchIndex, matchEnd))
+        builder.pop()
+        currentIndex = matchEnd
+    }
+    return builder.toAnnotatedString()
 }
 
 fun formatTimeAgo(timestamp: Long): String {

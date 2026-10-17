@@ -76,6 +76,9 @@ interface NotificationDao {
     @Query("UPDATE notification_records SET isStarred = :isStarred WHERE id = :id")
     suspend fun setStarred(id: Long, isStarred: Boolean)
 
+    @Query("UPDATE notification_records SET isRead = :isRead WHERE id = :id")
+    suspend fun setReadStatus(id: Long, isRead: Boolean)
+
     @Query("UPDATE notification_records SET isRead = 1")
     suspend fun markAllAsRead()
 

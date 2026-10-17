@@ -35,6 +35,10 @@ class NotificationRepository(private val dao: NotificationDao) {
         dao.setStarred(id, !currentStarred)
     }
 
+    suspend fun setReadStatus(id: Long, isRead: Boolean) = withContext(Dispatchers.IO) {
+        dao.setReadStatus(id, isRead)
+    }
+
     suspend fun markAllAsRead() = withContext(Dispatchers.IO) {
         dao.markAllAsRead()
     }
